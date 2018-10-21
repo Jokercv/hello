@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>HelloCms</title>
+    <script type="text/javascript" src="/static/js/jquery.js"></script>
+    <script type="text/javascript" src="/static/js/jquery.easyui.min.js"></script>
+    <script type="text/javascript" src="/static/js/easyui-lang-zh_CN.js"></script>
+    <link href="/static/css/themes/default/easyui.css" rel="stylesheet"/>
+    <link href="/static/css/themes/icon.css" rel="stylesheet"/>
+    <script type="text/javascript">
+        $(function () {
+            $("#addDiv").css("display", "none");
+            $("#editDiv").css("display","none");
+            $("#btnSearch").click(function () {
+                var pars={
+                    name:$("#txtSearchUName").val(),
+                    remark:$("#txtSearchRemark").val()
+                }
+                loadData(pars)
+            })
+            loadData();
+        })
+
+        function loadData(pars) {
+            $('#tt').datagrid({
+                url: '/Admin/UserInfo/GetUserInfo',
+                title: '用户数据表格',
+                width: 700,
+                height: 400,
+                fitColumns: true, //列自适应
+                nowrap: false,//设置为true，当数据长度超出列宽时将会自动截取
+                idField: 'Id',//主键列的列明
+                loadMsg: '正在加载用户的信息...',
+                pagination: true,//是否有分页
+                singleSelect: false,//是否单行选择
+                pageSize: '10',//页大小，一页多少条数据
+                pageNumber: 1,//当前页，默认的
+                pageList: [2, 5, 10],
+                queryParams: pars,//往后台传递参数
+                columns: [[
+                    {field: 'ck', checkbox: true, align: 'left', width: 50},
+                    {field: 'Id', title: '编号', width: 80},
+                    {field: 'UserName', title: '姓名', width: 120},
+                    {field: 'UserPwd', title: '密码', width: 120},
+                    {field: 'Remark', title: '备注', width: 120},
+                    {
+                        field: 'AddDate', title: '时间', width: 80, align: 'right',
+                        formatter: function (value, row, index) {
+                            return value.split('T')[0]//对日期时间的处理
+                        }
+                    }
+                ]],
+                toolbar: [{
+                    id: 'btnDelete',
+                    text: '删除',//显示的文本
+                    iconCls: 'icon-remove', //采用的样式
+                    handler: function () {
+                       deleteUser()
+                    }
+                }, {
+                    id: 'btnAdd',
+                    text: '添加',
+                    iconCls: 'icon-add',
+                    handler: function () {
+                        showAddUser();//展示添加用户表单
+                    }
+                },{
+                    id:"btnEdit",
+                    text:"编辑",
+                    iconCls:'icon-edit',
+                    handler:function () {
+                        showEditUser();
+                    }
+                },{
+                    id:"btnEdit",
+                    text:"为用户分配角色",
+                    iconCls:'icon-edit',
+                    handler:function () {
+                        showSetUserRole();
+                    }
+                }],
+            });
+        }
+
+        function showSetUserRole() {
+            var rows = $('#tt').datagrid('getSelections');
+            if (rows.length != 1) {
+                $.messager.alert("提示", "选择个数错误", "error");
+                return;
+            }
+            var userId=rows[0].Id
+            $("#setRoleFrame").attr("src","/Admin/UserInfo/ShowSetUserRole?userId="+userId)
+            $("#setRoleDiv").css("display","block")
+            $("#setRoleDiv").dialog({
+                title: '为用户分配角色信息',
+                width: 300,
+                height: 300,
+                collapsible: true, //可折叠
+                maximizable: true, //最大化
+                resizable: true,//可缩放
+                modal: true,//模态，表示只有将该窗口关闭才能修改页面中其它内容
+                buttons: [{ //按钮组
+                    text: 'Ok',//按钮上的文字
+                    iconCls: 'icon-ok',
+                    handler: function () {
+                        // var childWindow=$("#setRoleFrame")[0].contentWindow
+                        // childWindow.subForm();
+                    }
+                }, {
+                    text: 'Cancel',
+                    handler: function () {
+                        $('#setRoleDiv').dialog('close');
+                    }
+                }]
+            });
+
+        }
+        function showSetUserAction() {
+            var rows=$('#tt').datagrid('getSelections');
+            if (rows.length != 1) {
+                $.message.alert("提示","选择错误数目","error")
+                return;
+            }
+            var userId=rows[0].Id;
+            $("#setActionFrame").attr("src","/Admin/UserIndo/ShowSetUserActiono?userId="+userId);
+            $("#SetActionDiv").css("display","block");
+            $("#setActionDiv").dialog({
+                title: '   为用户分配权限',
+                width: 400,
+                height: 400,
+                collapsible:true,
+                maximizable:true,
+                resizable:true,
+                modal:true,
+                buttons:[{
+                    text:'OK',
+                    iconCls:'icon-ok',
+                    handler:function () {
+
+                    }
+
+                },{
+                text:'Cancel',
+                handler:function () {
+                    $('setActionDiv').dialog('close');
+                }
+            }]
+
+            });
+        }
+        function showEditUser() {
+            var rows = $('#tt').datagrid('getSelections');
+            if (rows.length != 1) {
+                $.messager.alert("提示", "选择个数错误", "error");
+                return;
+            }
+            // $("#txtUserId").val(data.userInfo.Id)
+            $.post("/Admin/UserInfo/ShowEditUser", {"userId": rows[0].Id}, function (data) {
+                $("#txtUserName").val(data.userInfo.UserName);
+                $("#txtUserPwd").val(data.userInfo.UserPwd);
+                $("#txtUserId").val(data.userInfo.Id);
+                $("#txtUserRemark").val(data.userInfo.Remark);
+                $("#editDiv").css("display", "block");
+                $('#editDiv').dialog({
+                    title: '修改用户信息',
+                    width: 300,
+                    height: 300,
+                    collapsible: true, //可折叠
+                    maximizable: true, //最大化
+                    resizable: true,//可缩放
+                    modal: true,//模态，表示只有将该窗口关闭才能修改页面中其它内容
+                    buttons: [{ //按钮组
+                        text: 'Ok',//按钮上的文字
+                        iconCls: 'icon-ok',
+                        handler: function () {
+                            //1:获取表单中的数据
+                            //2:发送服务端。
+                            EditUser();
+                        }
+                    }, {
+                        text: 'Cancel',
+                        handler: function () {
+                            $('#editDiv').dialog('close');
+                        }
+                    }]
+                })
+            })
+
+
+        }
+        //数据更新
+        function EditUser() {
+            var pars=$("#editForm").serializeArray();
+            $.post("/Admin/UserInfo/EditUser",pars,function (data) {
+                if (data.flag == "ok") {
+                    $.messager.alert("提示", "修改成功", "info");
+                    $("#tt").datagrid('reload');
+                } else {
+                    $.messager.alert("warning", "flag!=ok，html中", "error")
+
+                }
+            })
+        }
+        //展示添加用户表单
+        function showAddUser() {
+            $("#addDiv").css("display", "block");//显示
+            $('#addDiv').dialog({
+                title: '添加用户信息',
+                width: 300,
+                height: 300,
+                collapsible: true, //可折叠
+                maximizable: true, //最大化
+                resizable: true,//可缩放
+                modal: true,//模态，表示只有将该窗口关闭才能修改页面中其它内容
+                buttons: [{ //按钮组
+                    text: 'Ok',//按钮上的文字
+                    iconCls: 'icon-ok',
+                    handler: function () {
+                        //1:获取表单中的数据
+                        //2:发送服务端。
+                        AddUserData();
+                    }
+                }, {
+                    text: 'Cancel',
+                    handler: function () {
+                        $('#addDiv').dialog('close');
+                    }
+                }]
+            });
+        }
+
+        //删除功能
+        function deleteUser() {
+            var rows = $('#tt').datagrid('getSelections');
+            if (!rows || rows.length == 0) {
+                $.messager.alert("提醒", "选择为空", "error");
+                return;
+            }
+            $.messager.confirm("提示", "确认删除？", function (r) {
+                if (r) {
+                    // console.log(rows);
+                    var strId = ""
+                    for (var i = 0; i < rows.length; i++) {
+                        strId = strId + rows[i].Id + "-";
+                    }
+                    strId = strId.substr(0, strId.length - 1);
+                    $.post("/Admin/UserInfo/DeleteUser", {"strId": strId}, function (data) {
+                        if (data.flag == "ok") {
+                            $.messager.alert("提示", "删除成功", "info");
+                            $("#tt").datagrid('reload');
+                            $("#tt").datagrid('clearSelections')
+                        } else {
+                            $.messager.alert("warning", "删除成功", "error")
+
+                        }
+                    })
+                }
+            })
+        }
+
+        function AddUserData() {
+            var pars = $("#addForm").serializeArray()
+            $.post("/Admin/UserInfo/AddUser", pars, function (data) {
+                if (data.flag == "ok") {
+                    $.messager.alert("提示", "用户添加成功", "info");
+                    $("#addDiv").dialog('close');
+                    $("#addForm").val("")
+                    $("#tt").datagrid('reload');
+                } else {
+                    $.messager.alert("提示", "用户添加失败", "error");
+                }
+            })
+        }
+
+        // $("#addDiv").css("display","none")
+    </script>
+</head>
+<body>
+<div>
+    用户名：<input type="text" id="txtSearchUName"/>
+    备注：<input type="text" id="txtSearchRemark"/>
+    <a href="#" class="easyui-linkbutton" data-options="iconCls:'icon-search'" style="width:80px" id="btnSearch">Search</a>
+    <table id="tt" style="width: 700px;" title="标题，可以使用代码进行初始化，也可以使用这种属性的方式" iconcls="icon-edit">
+    </table>
+</div>
+<div id="addDiv">
+    <form id="addForm">
+        <table>
+
+            <tr>
+                <td>用户名</td>
+                <td><input type="text" name="userName"></td>
+            </tr>
+            <tr>
+                <td>密码</td>
+                <td><input type="password" name="userPwd"></td>
+            </tr>
+            <tr>
+                <td>备注</td>
+                <td><input type="text" name="userRemark"></td>
+            </tr>
+        </table>
+    </form>
+</div>
+<div id="editDiv">
+    <form id="editForm">
+        <table>
+            <input type="hidden" name="userEditId" id="txtUserId"/>
+            <tr>
+                <td>用户名</td>
+                <td><input type="text" name="userEditName" id="txtUserName"></td>
+            </tr>
+            <tr>
+                <td>密码</td>
+                <td><input type="password" name="userEditPwd" id="txtUserPwd"></td>
+            </tr>
+            <tr>
+                <td>备注</td>
+                <td><input type="text" name="userEditRemark" id="txtUserRemark"></td>
+            </tr>
+        </table>
+    </form>
+</div>
+<!-----------fe分配绝色---------->
+<div id="setRoleDiv">
+    <iframe id="setRoleFrame" frameborder="0" width="100%" height="100%"></iframe>
+</div>
+<!-------------分配权限--------->
+<div id="setActionDiv">
+    <iframe id="setActionFrame" frameborder="0" width="100%" height="100%"></iframe>
+</div>
+</body>
+</html>
